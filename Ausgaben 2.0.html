@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ausgaben">
+<title>Ausgaben</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+<style>
+:root{--bg:#f2f3f7;--card:#fff;--ink:#14172a;--mute:#6a6f88;--line:#dcdfeb;--acc:#3b4be0;--accink:#fff;--accbg:#e5e8fd;--ok:#0e8a5f;--red:#d6334d;--redbg:#fde3e8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0e18;--card:#151826;--ink:#e9ebf6;--mute:#8d93ad;--line:#262a3e;--acc:#8c97ff;--accink:#0c0e18;--accbg:#22274a;--ok:#3ddc97;--red:#ff6b86;--redbg:#3e1620;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0c0e18;--card:#151826;--ink:#e9ebf6;--mute:#8d93ad;--line:#262a3e;--acc:#8c97ff;--accink:#0c0e18;--accbg:#22274a;--ok:#3ddc97;--red:#ff6b86;--redbg:#3e1620;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.4 Manrope,-apple-system,system-ui,sans-serif}
+main{max-width:520px;margin:0 auto;padding:14px 14px 50px}
+button,input{font-family:inherit;color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:12px}
+.tabs button{border:0;background:none;padding:10px;border-radius:10px;font:700 15px inherit;font-family:inherit}.tabs button.on{background:var(--acc);color:var(--accink)}
+.inp{width:100%;font:700 24px inherit;font-family:inherit;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.sm{width:100%;font:500 16px inherit;font-family:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.btn{border:0;background:var(--acc);color:var(--accink);font:800 16px inherit;font-family:inherit;padding:13px;border-radius:12px;width:100%;margin-top:8px}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.nav button{border:1px solid var(--line);background:var(--card);border-radius:10px;width:42px;height:38px;font-size:20px}.nav b{font-size:17px}
+.big{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.1}.m{color:var(--mute);font-size:13px}
+.bars{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:120px;margin-top:12px}
+.bars div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:3px;font-size:11px;color:var(--mute)}
+.bars i{display:block;width:100%;background:var(--acc);border-radius:6px 6px 2px 2px;min-height:3px}
+.bars div.t{color:var(--ink);font-weight:800}
+h3{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;margin:16px 2px 8px}
+.e{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.e:first-child{border-top:0}.e .g{flex:1;min-width:0}.e small{display:block;color:var(--mute);font-size:12px}
+.x{border:0;background:none;color:var(--mute);font-size:22px;padding:0 4px}
+.lim{display:flex;gap:8px;align-items:center;margin-top:10px}.lim input{flex:1}
+.stat{margin-top:8px;font-weight:700}.ok{color:var(--ok)}.over{color:var(--red)}
+.lnk{border:0;background:none;color:var(--mute);font-size:13px;text-decoration:underline;padding:8px 0;width:100%}.bad{color:var(--red)}#st{font-size:13px;text-align:center;margin:-4px 0 10px;font-weight:700}
+svg{width:100%;height:auto;display:block;margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+<input class="inp" id="am" type="number" inputmode="decimal" placeholder="Ausgegeben in CHF" min="0">
+<div class="r2"><input class="sm" id="nt" type="text" placeholder="Wofür? (optional)" autocomplete="off"><input class="sm" id="dt" type="date"></div>
+<button class="btn" id="add">Ausgabe eintragen</button>
+<button class="lnk" id="cx" style="display:none">Abbrechen</button>
+</div>
+<div id="st" class="ok"></div>
+<div class="tabs"><button data-t="0" id="t0">Woche</button><button data-t="1" id="t1">Monat</button></div>
+<div id="v"></div>
+<button class="lnk" id="cj">Daten als JSON kopieren</button>
+</main>
+<script>
+var S={e:[],limit:1500},tab=0,off=0,db=null,uid=null,editId=null,q=Promise.resolve();
+var $=function(i){return document.getElementById(i)};
+function mk(d){return "m-"+d.slice(0,7)}
+function setSt(t,bad){var e=$("st");e.className=bad?"bad":"ok";e.textContent=t}
+function save(months){
+ if(!db||!uid){setSt("Speichern ist hier nicht möglich. Öffne die App in der Claude-App.",1);return}
+ months=months||Object.keys(S.e.reduce(function(o,e){o[mk(e.d)]=1;return o},{}));
+ var col=db.collection("data/users/"+uid);setSt("Speichert …");
+ q=q.then(function(){return Promise.all(months.map(function(k){return col.doc(k).set({e:S.e.filter(function(e){return mk(e.d)===k})})}).concat([col.doc("settings").set({limit:S.limit})]))}).then(function(){setSt("Gespeichert ✓")}).catch(function(e){setSt("Speichern fehlgeschlagen ("+((e&&e.code)||"Fehler")+")",1)});
+}
+function startEdit(id){var e=S.e.filter(function(x){return String(x.id)===id})[0];if(!e)return;editId=e.id;$("am").value=e.a;$("nt").value=e.n||"";$("dt").value=e.d;$("add").textContent="Änderung speichern";$("cx").style.display="block";window.scrollTo(0,0)}
+function endEdit(){editId=null;$("am").value="";$("nt").value="";$("dt").value=iso(new Date());$("add").textContent="Ausgabe eintragen";$("cx").style.display="none"}
+function pad(n){return n<10?"0"+n:""+n}
+function iso(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function parse(s){var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2])}
+function f(n){n=Math.round(n*100)/100;var p=Math.abs(n).toFixed(2).split("."),i=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,"’");return i+(p[1]==="00"?"":"."+p[1])}
+function chf(n){return "CHF "+f(n)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function dm(s){var p=s.split("-");return p[2]+"."+p[1]+"."}
+var WD=["Mo","Di","Mi","Do","Fr","Sa","So"],MN=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+document.getElementById("dt").value=iso(new Date());
+function list(es){return es.length?es.slice().sort(function(a,b){return a.d<b.d?1:a.d>b.d?-1:b.id-a.id}).map(function(e){return '<div class="e"><div class="g"><div>'+(e.n?esc(e.n):"Ausgabe")+'</div><small>'+WD[(parse(e.d).getDay()+6)%7]+' '+dm(e.d)+'</small></div><b>'+chf(e.a)+'</b><button class="x" data-ed="'+e.id+'" aria-label="Bearbeiten">✎</button><button class="x" data-del="'+e.id+'" aria-label="Löschen">×</button></div>'}).join(""):'<div class="m">Noch keine Ausgaben.</div>'}
+function vWeek(){
+ var t=new Date();t.setDate(t.getDate()+off*7);t.setDate(t.getDate()-((t.getDay()+6)%7));
+ var ds=[];for(var i=0;i<7;i++){var d=new Date(t);d.setDate(t.getDate()+i);ds.push(iso(d))}
+ var es=S.e.filter(function(e){return ds.indexOf(e.d)>=0}),per=ds.map(function(d){return es.filter(function(e){return e.d===d}).reduce(function(a,e){return a+e.a},0)}),sum=per.reduce(function(a,b){return a+b},0),mx=Math.max.apply(0,per.concat([1])),td=iso(new Date());
+ return '<div class="nav"><button data-w="-1">‹</button><b>'+dm(ds[0])+' – '+dm(ds[6])+'</b><button data-w="1">›</button></div><div class="card"><div class="m">Diese Woche ausgegeben</div><div class="big">'+chf(sum)+'</div><div class="bars">'+per.map(function(v,i){return '<div class="'+(ds[i]===td?"t":"")+'"><span>'+(v?f(v):"")+'</span><i style="height:'+(v?Math.max(4,v/mx*80):3)+'px;'+(v?"":"opacity:.25")+'"></i>'+WD[i]+'</div>'}).join("")+'</div></div><h3>Einträge</h3><div class="card">'+list(es)+'</div>';
+}
+function chart(cum,days,lim){
+ var W=320,H=210,L=44,B=24,T=10,R=10,mx=Math.max(lim,cum.length?cum[cum.length-1]:0)*1.1;if(mx<=0)mx=1;
+ var X=function(d){return L+(d-1)*(W-L-R)/Math.max(1,days-1)},Y=function(v){return H-B-v/mx*(H-B-T)},h="",col=function(v){return v>lim?"var(--red)":"var(--ok)"};
+ [0,.5,1].forEach(function(k){var v=mx/1.1*k;h+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" style="stroke:var(--line)"/><text x="'+(L-5)+'" y="'+(Y(v)+4)+'" text-anchor="end" font-size="10" style="fill:var(--mute)">'+f(v)+'</text>'});
+ for(var d=1;d<=days;d+=(days>20?5:3)){h+='<text x="'+X(d)+'" y="'+(H-6)+'" text-anchor="middle" font-size="10" style="fill:var(--mute)">'+d+'</text>'}
+ h+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(lim)+'" y2="'+Y(lim)+'" stroke-dasharray="5 4" stroke-width="1.5" style="stroke:var(--mute)"/><text x="'+(W-R)+'" y="'+(Y(lim)-4)+'" text-anchor="end" font-size="10" style="fill:var(--mute)">Limit</text>';
+ for(var i=1;i<cum.length;i++){
+  var a=cum[i-1],b=cum[i],x1=X(i),x2=X(i+1);
+  if((a>lim)!==(b>lim)){var k=(lim-a)/(b-a),xm=x1+(x2-x1)*k,ym=Y(lim);
+   h+='<line x1="'+x1+'" y1="'+Y(a)+'" x2="'+xm+'" y2="'+ym+'" style="stroke:'+col(a)+'" stroke-width="3" stroke-linecap="round"/><line x1="'+xm+'" y1="'+ym+'" x2="'+x2+'" y2="'+Y(b)+'" style="stroke:'+col(b)+'" stroke-width="3" stroke-linecap="round"/>'}
+  else h+='<line x1="'+x1+'" y1="'+Y(a)+'" x2="'+x2+'" y2="'+Y(b)+'" style="stroke:'+col(b)+'" stroke-width="3" stroke-linecap="round"/>';
+ }
+ if(cum.length){var l=cum[cum.length-1];h+='<circle cx="'+X(cum.length)+'" cy="'+Y(l)+'" r="4.5" style="fill:'+col(l)+'"/>'}
+ return '<svg viewBox="0 0 '+W+' '+H+'" role="img">'+h+'</svg>';
+}
+function vMonth(){
+ var n=new Date(),m=new Date(n.getFullYear(),n.getMonth()+off,1),y=m.getFullYear(),mo=m.getMonth(),days=new Date(y,mo+1,0).getDate(),pre=y+"-"+pad(mo+1)+"-";
+ var es=S.e.filter(function(e){return e.d.indexOf(pre)===0}),upto=(off===0)?n.getDate():(off<0?days:0),cum=[],run=0;
+ for(var d=1;d<=upto;d++){es.forEach(function(e){if(+e.d.slice(8)===d)run+=e.a});cum.push(run)}
+ var sum=es.reduce(function(a,e){return a+e.a},0),lim=S.limit,st=sum>lim?'<div class="stat over">Limit um '+chf(sum-lim)+' überschritten</div>':'<div class="stat ok">Noch '+chf(lim-sum)+' bis zum Limit</div>';
+ return '<div class="nav"><button data-w="-1">‹</button><b>'+MN[mo]+' '+y+'</b><button data-w="1">›</button></div><div class="card"><div class="m">Im Monat ausgegeben</div><div class="big '+(sum>lim?"over":"")+'">'+chf(sum)+'</div>'+st+chart(cum,days,lim)+'<div class="lim"><span class="m">Monatslimit</span><input class="sm" id="li" type="number" inputmode="decimal" value="'+lim+'"><button class="btn" id="ls" style="width:auto;margin:0;padding:10px 14px">OK</button></div></div><h3>Einträge</h3><div class="card">'+list(es)+'</div>';
+}
+function render(){document.getElementById("t0").className=tab===0?"on":"";document.getElementById("t1").className=tab===1?"on":"";document.getElementById("v").innerHTML=tab===0?vWeek():vMonth()}
+$("add").onclick=function(){
+ var a=parseFloat($("am").value.replace(",",".")),d=$("dt").value||iso(new Date());
+ if(!(a>0)){$("am").focus();return}
+ if(editId!==null){var e=S.e.filter(function(x){return x.id===editId})[0];if(e){var ok=mk(e.d);e.a=a;e.n=$("nt").value.trim();e.d=d;var ms=[ok,mk(d)];endEdit();save(ms);render();return}}
+ S.e.push({id:Date.now(),a:a,n:$("nt").value.trim(),d:d});
+ $("am").value="";$("nt").value="";save([mk(d)]);off=0;render();
+};
+$("cx").onclick=endEdit;
+$("cj").onclick=function(){var t=JSON.stringify({limit:S.limit,expenses:S.e},null,2);(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){setSt("JSON kopiert ✓")}).catch(function(){setSt("Kopieren nicht möglich",1)})};
+document.addEventListener("click",function(ev){
+ var b=ev.target.closest("button");if(!b)return;var d=b.dataset;
+ if(d.t!==undefined){tab=+d.t;off=0;render()}
+ else if(d.w!==undefined){off+=+d.w;render()}
+ else if(d.ed!==undefined){startEdit(d.ed)}
+ else if(d.del!==undefined){var de=S.e.filter(function(e){return String(e.id)===d.del})[0];S.e=S.e.filter(function(e){return String(e.id)!==d.del});if(editId!==null&&de&&de.id===editId)endEdit();save(de?[mk(de.d)]:[]);render()}
+ else if(b.id==="ls"){var v=parseFloat(document.getElementById("li").value);if(v>0){S.limit=v;save();render()}}
+});
+(async function(){
+ setSt("Lädt …");
+ try{var u=await window.claude.use("user");db=await window.claude.use("db");uid=u?await u.id():null}catch(e){}
+ if(!db||!uid){setSt("Speichern ist hier nicht möglich. Öffne die App in der Claude-App.",1);render();return}
+ try{
+  var sn=await db.collection("data/users/"+uid).get();
+  sn.docs.forEach(function(d){var x=d.data()||{};if(d.id==="settings"){if(+x.limit>0)S.limit=+x.limit}else if(Array.isArray(x.e))S.e=S.e.concat(x.e)});
+  if(!S.e.length){try{var old=JSON.parse(localStorage.getItem("ausgaben-v1")||"null");if(old&&Array.isArray(old.e)&&old.e.length){S.e=old.e;if(+old.limit>0)S.limit=+old.limit;render();save();return}}catch(x){}}
+  setSt("Gespeichert ✓");
+ }catch(e){setSt("Laden fehlgeschlagen ("+((e&&e.code)||"Fehler")+")",1)}
+ render();
+})();
+</script>
+</body>
+</html>
